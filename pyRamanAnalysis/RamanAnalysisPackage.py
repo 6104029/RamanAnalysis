@@ -455,3 +455,46 @@ def calculate_group_averages(ratiosdf, files, spectra_per_sample=10):
     plt.tight_layout()
     plt.show()
     return group_averages
+
+def save_individual_spectra(FN):
+    """
+    Save individual spectra to CSV files.
+    """
+
+    # Get all matching files in the current folder
+    files = glob.glob(FN + "*.txt")
+
+    # Make a real output folder based on the prefix
+    output_folder = f"Individual_spectra"
+    os.makedirs(output_folder, exist_ok=True)
+    print(f"Saving individual spectra to: {output_folder}")
+
+    # Initialize
+    rmn = []
+    selected_data = {}
+    rows_per_spectrum = 392
+    measdur = 62
+
+    # Sort files and process
+    files.sort(key=str.lower)
+
+    for n in files:
+        try:
+            data = pd.read_csv(n, sep='\t', header=None, names=['Depth', 'Wavenumber', 'Intensity'], index_col=False)
+            num_spectra = len(data) // rows_per_spectrum
+
+            for i in range(num_spectra):
+                spectrum = data.iloc[i*rows_per_spectrum:(i+1)*rows_per_spectrum].drop(columns=['Depth'])
+                rmn.append(spectrum)
+
+                base_name = os.path.splitext(os.path.basename(n))[0]
+                key = f"{base_name}_spectrum_{i+1}"
+                selected_data[key] = spectrum
+
+                # Save each spectrum
+                out_path = os.path.join(output_folder, f"{key}.txt")
+                spectrum.to_csv(out_path, sep='\t', index=False, header=False)
+                print(f"Saved: {out_path}")
+
+        except pd.errors.ParserError:
+            print(f"Error parsing file: {n}")
