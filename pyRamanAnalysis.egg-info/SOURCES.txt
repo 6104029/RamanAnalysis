@@ -1,8 +1,0 @@
-README.md
-setup.py
-pyRamanAnalysis/RamanAnalysisPackage.py
-pyRamanAnalysis/__init__.py
-pyRamanAnalysis.egg-info/PKG-INFO
-pyRamanAnalysis.egg-info/SOURCES.txt
-pyRamanAnalysis.egg-info/dependency_links.txt
-pyRamanAnalysis.egg-info/top_level.txt
