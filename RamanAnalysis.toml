@@ -1,0 +1,26 @@
+[project]
+name = "RamanAnalysis"
+version = "0.1.0"
+description = "A package for analyzing Raman spectroscopy data."
+authors = ["Hanya Spoelstra <h.y.spoelstra@uu.nl>"]
+license = "MIT"
+readme = "README.md"
+requires-python = ">=3.8"
+
+[project.urls]
+homepage = "https://your-homepage-url"
+repository = "https://your-repository-url"
+
+[tool.setuptools]
+packages = ["ramananalysis"]
+
+[project.dependencies]
+numpy = ">=1.20"
+scipy = ">=1.6"
+matplotlib = ">=3.4"
+pandas = ">=1.2"
+scikit-learn = ">=0.24"
+
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"

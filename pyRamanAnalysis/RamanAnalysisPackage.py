@@ -82,7 +82,7 @@ def quickplot():
         # Close the figure to prevent it from being displayed again
     return fig, ax
 
-def load_exsitu_data(path = os.getcwd()):
+def load_exsitu_data(path = os.getcwd(), filetype = '*.txt'):
     """
     Load ex situ data (all txt files) from a specified directory and return the data as a DataFrame.
     
@@ -91,7 +91,7 @@ def load_exsitu_data(path = os.getcwd()):
     """
     
     # Imports raw data files into list 'rmn' 
-    files = glob.glob(os.path.join(path, '*.txt'))
+    files = glob.glob(os.path.join(path, filetype))
     rmn = []
     selected_data = {}  # Change selected_data from list to dictionary
     files.sort(key=str.lower)
@@ -293,10 +293,79 @@ def fit_exsitu_data(rmn, B1FIRST, IGFIRST, B2FIRST, B1SECOND, IGSECOND, B2SECOND
         OPTtot.append(OPTspec)
     return OPTtot
 
+def fit_exsitu_data_2(rmn, b1=None, b2=None):
 
+    if b1 is None:
+        b1 = rmn[0]['Wavenumber'].min()
+    if b2 is None:
+        b2 = rmn[0]['Wavenumber'].max()
 
+    B1D1 = np.array([1320, 0 , 0])
+    IGD1 = np.array([1330, 150, 0.5])
+    B2D1 = np.array([1340, 500,200])
 
-def plot_fitted_data(OPTtot, rmn, files, b1=None, b2=None):
+    #G band
+    B1G = np.array([1570, 0 , 0])
+    IGG = np.array([1580, 50, 0.5])
+    B2G = np.array([1590, 100,200])
+
+    B1BG = [-10, -10, -10]
+    IGBG = [0, 0, 0]
+    B2BG = [10, 10, 10]
+
+    def L1(x,p,w,a):
+        L = a*((1/math.pi)*0.5*w/((x-p)**2+(0.5*w)**2))
+        return L
+    def BG(x,m,b,c):
+        BG = m*x**2 + b*x + c
+        return BG
+    def L2(x,p1,w1,a1,p2,w2,a2,m,b,c):
+        L = L1(x,p1,w1,a1) + L1(x,p2,w2,a2) + BG(x,m,b,c)
+        return L
+    OPTtot = []
+
+    for i1,rmn_f in enumerate(rmn):
+        x = rmn_f['Wavenumber']
+        y = rmn_f['Intensity']
+
+        xc = x[(x > b1) & (x < b2)]
+        yc = y[(x > b1) & (x < b2)]
+
+        #Normalize the data
+        ycn = yc/yc[(x > 1000) & (x < 1500)].max()
+
+        #Define part of the spectrum that is background
+        xcbg = xc [(xc > 200) & (xc < 290)|(xc > 730) & (xc < 850) | (xc > 1700) & (xc < 2200) | (xc > 3350)]
+        ycbg = ycn[(xc > 200) & (xc < 290)|(xc > 730) & (xc < 850) | (xc > 1700) & (xc < 2200) | (xc > 3350)]
+        
+        #Fit the background
+        OPTBG = opt.curve_fit(BG, xcbg, ycbg, p0=IGBG, bounds=(B1BG,B2BG))[0]
+
+        #Sets optimized background as boundaries for the BG fit
+        VAR = abs(OPTBG*1.01-OPTBG)
+        B1BGpol = OPTBG - VAR
+        B2BGpol = OPTBG + VAR
+        IGBGpol = OPTBG
+
+        #Boundaries for the first part of the fit
+        B1F = list(B1D1) + list(B1G) + list(B1BGpol)
+        IGF = list(IGD1) + list(IGG) + list(IGBGpol)
+        B2F = list(B2D1) + list(B2G) + list(B2BGpol)
+
+        b1FIRST = 700
+        b2FIRST = 2000
+        xcFIRST = xc[(xc > b1FIRST) & (xc < b2FIRST)]
+        ycFIRST = ycn[(xc > b1FIRST) & (xc < b2FIRST)]
+
+        #Fit the data
+        OPT = opt.curve_fit(L2,xcFIRST,ycFIRST,p0=IGF, bounds=(B1F,B2F))[0] 
+        fit1 = L2(xc, *OPT) #Bereken de gefitte y-waarden
+        ratioDG = OPT[2]/OPT[5]
+
+        OPTtot.append(OPT)
+    return OPTtot
+
+def plot_fitted_data( rmn, OPTtot, files, b1=None, b2=None):
     """
     Plot the fitted data from the list of DataFrames.
     """	
